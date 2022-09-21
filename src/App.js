@@ -3,8 +3,9 @@ import Banner from "./Banner";
 import Header from "./Header";
 import Main from "./Main";
 
+
 const App = () => {
-  const [tasks, setTasks] = useState([]);
+  const [tasks, setTasks] =  useLocalStorage("ja-fix:db", []);
   
   
   return (
@@ -13,16 +14,63 @@ const App = () => {
       <Banner onNewTask={t => {
         setTasks([...tasks, t]);
       } }/>
-      <Main tasks={tasks} onNewTaskDone={(taskId, log) => {
+      <Main 
+      tasks={tasks} 
+      onNewTaskDone={(taskId, log) => {
         setTasks([...tasks.map(t => {
           if(t.id !== taskId){
             return t;
           }
           return {...t, logs: [...t.logs, log]};
         })])
+      }}
+      onRemoveTask={taskId => {
+        if(!window.confirm('Tem certeza que deseja excluir?')){
+          return;
+        }
+        setTasks([...tasks.filter(t => t.id !== taskId)])
       }}/>
     </div>
   )
+}
+//HOOK PARA LOCAL STORAGE(SUBSTITUI O REACT_STORAGE_HOOKS)
+function useLocalStorage(key, initialValue) {
+  // State to store our value
+  // Pass initial state function to useState so logic is only executed once
+  const [storedValue, setStoredValue] = useState(() => {
+    if (typeof window === "undefined") {
+      return initialValue;
+    }
+    try {
+      // Get from local storage by key
+      const item = window.localStorage.getItem(key);
+      // Parse stored json or if none return initialValue
+      return item ? JSON.parse(item) : initialValue;
+    } catch (error) {
+      // If error also return initialValue
+      console.log(error);
+      return initialValue;
+    }
+  });
+  // Return a wrapped version of useState's setter function that ...
+  // ... persists the new value to localStorage.
+  const setValue = (value) => {
+    try {
+      // Allow value to be a function so we have same API as useState
+      const valueToStore =
+        value instanceof Function ? value(storedValue) : value;
+      // Save state
+      setStoredValue(valueToStore);
+      // Save to local storage
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(key, JSON.stringify(valueToStore));
+      }
+    } catch (error) {
+      // A more advanced implementation would handle the error case
+      console.log(error);
+    }
+  };
+  return [storedValue, setValue];
 }
 
 export default App;
