@@ -1,38 +1,72 @@
 import React, { useState } from "react";
-import Banner from "./Banner";
+
 import Header from "./Header";
 import Main from "./Main";
+import styled, { ThemeProvider } from "styled-components";
+import NewThingBanner from "./NewThingBanner";
 
+const Container = styled.div`
+  position: fixed;
+  display: grid;
+  height: 100vh;
+  height: fill-available;
+  width: 100%;
+  grid-template-rows: 64px 130px auto;
+`;
+
+const THEMES = {
+  dark: {
+    background: "#3e3e3e",
+    selectedBackground: "#333",
+    text: "#fff",
+    itemColor: "#fff",
+    newItemColor: "#fff",
+    categoryColor: "#fff",
+    headerFilter: "brightness(0) invert(1)"
+  },
+  light: {
+    background: "#fff",
+    selectedBackground: "#f4f2f2",
+    text: "#333",
+    itemColor: "#243b6b",
+    newItemColor: "#536388",
+    categoryColor: "#929db6",
+    headerFilter: "none"
+  }
+};
 
 const App = () => {
-  const [tasks, setTasks] =  useLocalStorage("ja-fix:db", []);
+  const [things, setThings] =  useLocalStorage("ja-fix:db", []);
+  const [darkTheme, setDarkTheme] =  useLocalStorage("ja-fix:theme", false);
   
   
   return (
-    <div>
-      <Header />
-      <Banner onNewTask={t => {
-        setTasks([...tasks, t]);
-      } }/>
+    <ThemeProvider theme={THEMES[darkTheme ? 'dark' : 'light']}>
+    <Container>
+      <Header onToggleDarkTheme={() => setDarkTheme(!darkTheme)} />
+      <NewThingBanner onNewThing={t => setThings([...things, t])}/>
       <Main 
-      tasks={tasks} 
-      onNewTaskDone={(taskId, log) => {
-        setTasks([...tasks.map(t => {
-          if(t.id !== taskId){
-            return t;
+      things={things} 
+      onNewThingDone={(thingId, thingDone) => 
+        setThings([...things.map(t2 => {
+          if(t2.id !== thingId){
+            return t2;
           }
-          return {...t, logs: [...t.logs, log]};
-        })])
-      }}
-      onRemoveTask={taskId => {
+          return {...t2, when: [...t2.when, thingDone]};
+        })
+      ])
+      }
+      onRemoveThing={id => {
         if(!window.confirm('Tem certeza que deseja excluir?')){
           return;
         }
-        setTasks([...tasks.filter(t => t.id !== taskId)])
-      }}/>
-    </div>
-  )
-}
+        setThings([...things.filter(t2 => t2.id !== id)]);
+      }}
+      />
+    </Container>
+    </ThemeProvider>
+  );
+};
 //HOOK PARA LOCAL STORAGE(SUBSTITUI O REACT_STORAGE_HOOKS)
 function useLocalStorage(key, initialValue) {
   // State to store our value
